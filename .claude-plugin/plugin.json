@@ -1,0 +1,21 @@
+{
+  "name": "agent-workflow-kit",
+  "version": "0.1.0",
+  "description": "Meally's AI workflow for Claude Code: /prep → /recipe → /cook, five parallel reviewers tasting every phase, data-driven hooks for any stack, and an A–D inspection for AGENTS.md / CLAUDE.md.",
+  "author": {
+    "name": "MaTeS72",
+    "email": "martin@meallyapp.com"
+  },
+  "homepage": "https://github.com/MaTeS72/agent-workflow-kit",
+  "repository": "https://github.com/MaTeS72/agent-workflow-kit",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "agents-md",
+    "claude-md",
+    "code-review",
+    "hooks",
+    "planning",
+    "sdlc"
+  ]
+}

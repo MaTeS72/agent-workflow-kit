@@ -1,0 +1,13 @@
+{
+  "config": {
+    // Prose wraps where it reads best; tables and links run long.
+    "MD013": false,
+    // Templates use <placeholders>, which markdownlint reads as inline HTML.
+    "MD033": false,
+    // CLAUDE.md files start with an @AGENTS.md import, not a heading.
+    "MD041": false,
+    // Skills repeat section names (Input, Rules) across files, never within one.
+    "MD024": { "siblings_only": true }
+  },
+  "ignores": ["node_modules/**"]
+}

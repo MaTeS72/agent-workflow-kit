@@ -1,0 +1,54 @@
+# Behaviour evals for the kit's skills, agents and hooks (claude plugin eval).
+# Manual only: every run is a paid model call. Start with the smoke tag.
+name: evals
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Run only cases with this tag (smoke, core, review, planning, hooks, inspection). Empty runs all."
+        default: smoke
+      max_cost_usd:
+        description: "Hard ceiling on the run's list-price cost, in USD"
+        default: "2"
+      ablation:
+        description: "with-without adds the no-plugin baseline; none halves the cost"
+        default: none
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the sandbox backend and Claude Code
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap socat
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run the suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TAG: ${{ inputs.tag }}
+          MAX_COST: ${{ inputs.max_cost_usd }}
+          ABLATION: ${{ inputs.ablation }}
+        run: |
+          claude plugin eval . \
+            ${TAG:+--tag "$TAG"} \
+            --ablation "$ABLATION" \
+            --trust-plugin --scaffold \
+            --allow-tools Write Edit "Bash(git *)" "Bash(python3 *)" \
+            --model claude-sonnet-5-5 --judge-model claude-haiku-5-5 \
+            --threshold 0.8 --no-publish \
+            --max-cost-usd "$MAX_COST" \
+            --json results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: |
+            results.json
+            evals/results/

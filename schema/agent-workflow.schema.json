@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/MaTeS72/agent-workflow-kit/main/schema/agent-workflow.schema.json",
+  "title": "agent-workflow-kit project config",
+  "description": "Per-project rules for the kit's hooks. Lives at .claude/agent-workflow.json. Commands for building and testing live in AGENTS.md, not here.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "stack": {
+      "description": "The stack pack this config started from, for humans and the /inspect skill.",
+      "type": "string"
+    },
+    "protected": {
+      "description": "Files Claude must not edit. The first matching rule wins.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["glob", "reason"],
+        "properties": {
+          "glob": { "$ref": "#/$defs/glob" },
+          "reason": {
+            "description": "Shown to Claude when an edit is blocked. Say what to do instead.",
+            "type": "string"
+          },
+          "allowCreate": {
+            "description": "Allow writing a new matching file (for example a new migration) while blocking edits to existing ones.",
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "formatOnEdit": {
+      "description": "Formatter to run after Claude edits a matching file. The first matching rule wins.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["glob", "command"],
+        "properties": {
+          "glob": { "$ref": "#/$defs/glob" },
+          "command": {
+            "description": "Run from the project root. {file} is replaced with the edited file's path.",
+            "type": "string",
+            "pattern": "\\{file\\}"
+          }
+        }
+      }
+    },
+    "pairedFiles": {
+      "description": "Reminders handed to Claude after it edits a matching file.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["glob", "reminder"],
+        "properties": {
+          "glob": { "$ref": "#/$defs/glob" },
+          "reminder": { "type": "string" }
+        }
+      }
+    },
+    "patterns": {
+      "description": "Text an edit must not add. Only the added text is checked, so existing code doesn't trigger it. Claude gets the message as a reminder.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["glob", "regex", "message"],
+        "properties": {
+          "glob": { "$ref": "#/$defs/glob" },
+          "regex": { "description": "Python regular expression, searched line by line in the added text.", "type": "string", "minLength": 1 },
+          "message": { "description": "What rule this breaks and what to write instead.", "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "glob": {
+      "description": "Root-relative glob. `**/` spans directories; `*` and `?` stay within one.",
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

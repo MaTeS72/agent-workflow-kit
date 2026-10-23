@@ -1,0 +1,65 @@
+# agent-workflow-kit: headless /taste on every pull request, posted as a comment
+# with its cost. Advisory: the job fails when a confirmed blocker is found, but
+# don't make it a required check unless the team wants that.
+#
+# Secret: ANTHROPIC_API_KEY. Copy this file to .github/workflows/ in your repo.
+name: agent-taste
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: agent-taste-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  AGENT_KIT_REF: main            # pin a tag or commit for reproducible runs
+  AGENT_MODEL: claude-sonnet-5-5
+  AGENT_BUDGET_USD: "3"          # hard ceiling per run
+
+jobs:
+  taste:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Install Claude Code and the kit
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          git clone --quiet --depth 1 --branch "$AGENT_KIT_REF" https://github.com/MaTeS72/agent-workflow-kit.git /tmp/agent-workflow-kit
+      - name: Taste the pull request
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed=$(git diff --name-only "origin/$BASE_REF"...HEAD | tr '\n' ' ')
+          claude -p "/agent-workflow-kit:taste report-only $changed" \
+            --plugin-dir /tmp/agent-workflow-kit \
+            --model "$AGENT_MODEL" \
+            --permission-mode dontAsk \
+            --permission-prompts none \
+            --allowedTools "Read,Grep,Glob,Skill,Agent,Edit(./docs/changes/.tasting/**),Bash(git diff *),Bash(git log *),Bash(git status *),Bash(git check-ignore *)" \
+            --max-budget-usd "$AGENT_BUDGET_USD" \
+            --output-format json > taste.json
+          cp docs/changes/.tasting/report.md taste.md 2>/dev/null || jq -r '.result' taste.json > taste.md
+          printf '\n\n<sub>agent-workflow-kit /taste · %s · $%s</sub>\n' "$AGENT_MODEL" "$(jq -r '.total_cost_usd' taste.json)" >> taste.md
+      - name: Comment on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR" --body-file taste.md
+      - name: Flag blockers
+        run: |
+          if grep -Eq '^\*\*[1-9][0-9]* blockers?' taste.md; then
+            echo "::error::Blockers found; see the pull request comment."
+            exit 1
+          fi

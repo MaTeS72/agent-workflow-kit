@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: recipe-covers-edge-states-and-data
+context:
+  scaffold_script: scaffold.sh

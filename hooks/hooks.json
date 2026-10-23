@@ -1,0 +1,29 @@
+{
+  "description": "agent-workflow-kit: protect files, format on edit, and remind Claude of paired files and plan status. Rules come from each project's .claude/agent-workflow.json; without it the hooks do nothing.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pre_edit.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/post_edit.py\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

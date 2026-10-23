@@ -1,0 +1,17 @@
+{
+  "name": "agent-workflow-kit",
+  "owner": {
+    "name": "MaTeS72",
+    "email": "martin@meallyapp.com"
+  },
+  "metadata": {
+    "description": "Single-plugin marketplace for agent-workflow-kit."
+  },
+  "plugins": [
+    {
+      "name": "agent-workflow-kit",
+      "source": "./",
+      "description": "Meally's AI workflow: prep → recipe → cook, five parallel reviewers tasting every phase, data-driven hooks, and an A–D inspection for agent docs."
+    }
+  ]
+}

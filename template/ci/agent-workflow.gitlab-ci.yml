@@ -1,0 +1,108 @@
+# agent-workflow-kit for GitLab CI: three jobs, one include.
+#
+#   include:
+#     - remote: https://raw.githubusercontent.com/MaTeS72/agent-workflow-kit/main/template/ci/agent-workflow.gitlab-ci.yml
+#
+# agent-docs-check  every merge request; deterministic, free. Fails on broken
+#                   links or change folders without a Status line.
+# agent-taste       every merge request; headless /taste in report-only mode,
+#                   posted as a merge request note with its cost. Advisory:
+#                   allow_failure is true, so blockers flag the pipeline
+#                   without blocking the merge.
+# agent-inspect     weekly; headless /inspect, opened as an issue. Create a
+#                   pipeline schedule with the variable AGENT_JOB=inspect.
+#
+# CI/CD variables (masked): ANTHROPIC_API_KEY for the two agent jobs, and
+# GITLAB_ACCESS_TOKEN (project access token, `api` scope) to post notes and
+# issues. Without the token, reports stay in the job artifacts.
+
+variables:
+  AGENT_KIT_REF: main                # pin a tag or commit for reproducible runs
+  AGENT_MODEL: claude-sonnet-5-5
+  AGENT_TASTE_BUDGET_USD: "3"        # hard ceiling per merge request run
+  AGENT_INSPECT_BUDGET_USD: "2"      # hard ceiling per weekly run
+  AGENT_EXTRA_TOOLS: ""              # e.g. ",Bash(go test *)" so the pre-merge checker can run your tests
+
+.agent-workflow-base:
+  image: node:24-alpine3.21
+  variables:
+    GIT_DEPTH: 0
+  before_script:
+    - apk add --no-cache git curl bash jq python3 > /dev/null
+    - git clone --quiet --depth 1 --branch "$AGENT_KIT_REF" https://github.com/MaTeS72/agent-workflow-kit.git /tmp/agent-workflow-kit
+
+agent-docs-check:
+  extends: .agent-workflow-base
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - python3 /tmp/agent-workflow-kit/scripts/agent_docs_check.py . --strict
+
+.agent-workflow-claude:
+  extends: .agent-workflow-base
+  stage: test
+  timeout: 30m
+  before_script:
+    - !reference [.agent-workflow-base, before_script]
+    - curl -fsSL https://claude.ai/install.sh | bash
+    - export PATH="$HOME/.local/bin:$PATH"
+
+agent-taste:
+  extends: .agent-workflow-claude
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $ANTHROPIC_API_KEY'
+  allow_failure: true
+  script:
+    - CHANGED=$(git diff --name-only "$CI_MERGE_REQUEST_DIFF_BASE_SHA"...HEAD | tr '\n' ' ')
+    - >
+      claude -p "/agent-workflow-kit:taste report-only $CHANGED"
+      --plugin-dir /tmp/agent-workflow-kit
+      --model "$AGENT_MODEL"
+      --permission-mode dontAsk
+      --permission-prompts none
+      --allowedTools "Read,Grep,Glob,Skill,Agent,Edit(./docs/changes/.tasting/**),Bash(git diff *),Bash(git log *),Bash(git status *),Bash(git check-ignore *)$AGENT_EXTRA_TOOLS"
+      --max-budget-usd "$AGENT_TASTE_BUDGET_USD"
+      --output-format json > taste.json
+    - cp docs/changes/.tasting/report.md taste.md 2>/dev/null || jq -r '.result' taste.json > taste.md
+    - printf '\n\n<sub>agent-workflow-kit /taste · %s · $%s</sub>\n' "$AGENT_MODEL" "$(jq -r '.total_cost_usd' taste.json)" >> taste.md
+    - |
+      if [ -n "$GITLAB_ACCESS_TOKEN" ]; then
+        curl --fail --silent --show-error --request POST \
+          --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
+          --data-urlencode "body@taste.md" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes" > /dev/null
+      fi
+    # Flag the pipeline (advisory) when any confirmed blocker was found.
+    - if grep -Eq '^\*\*[1-9][0-9]* blockers?' taste.md; then echo "Blockers found; see the merge request note."; exit 1; fi
+  artifacts:
+    when: always
+    paths: [taste.md, taste.json]
+
+agent-inspect:
+  extends: .agent-workflow-claude
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $AGENT_JOB == "inspect" && $ANTHROPIC_API_KEY'
+  script:
+    - >
+      claude -p "/agent-workflow-kit:inspect report-only"
+      --plugin-dir /tmp/agent-workflow-kit
+      --model "$AGENT_MODEL"
+      --permission-mode dontAsk
+      --permission-prompts none
+      --allowedTools "Read,Grep,Glob,Skill,Edit(./docs/changes/.tasting/**),Bash(python3 *),Bash(git log *),Bash(git diff *)"
+      --max-budget-usd "$AGENT_INSPECT_BUDGET_USD"
+      --output-format json > inspect.json
+    - cp docs/changes/.tasting/inspection.md inspect.md 2>/dev/null || jq -r '.result' inspect.json > inspect.md
+    - printf '\n\n<sub>agent-workflow-kit /inspect · %s · $%s</sub>\n' "$AGENT_MODEL" "$(jq -r '.total_cost_usd' inspect.json)" >> inspect.md
+    - |
+      if [ -n "$GITLAB_ACCESS_TOKEN" ]; then
+        curl --fail --silent --show-error --request POST \
+          --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
+          --data-urlencode "title=Agent docs inspection $(date +%F)" \
+          --data-urlencode "description@inspect.md" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/issues" > /dev/null
+      fi
+  artifacts:
+    when: always
+    paths: [inspect.md, inspect.json]

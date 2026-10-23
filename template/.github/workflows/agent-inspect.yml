@@ -1,0 +1,51 @@
+# agent-workflow-kit: weekly headless /inspect of the repo's agent docs,
+# opened as an issue with its grade and cost.
+#
+# Secret: ANTHROPIC_API_KEY. Copy this file to .github/workflows/ in your repo.
+name: agent-inspect
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  AGENT_KIT_REF: main
+  AGENT_MODEL: claude-sonnet-5-5
+  AGENT_BUDGET_USD: "2"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Install Claude Code and the kit
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          git clone --quiet --depth 1 --branch "$AGENT_KIT_REF" https://github.com/MaTeS72/agent-workflow-kit.git /tmp/agent-workflow-kit
+      - name: Inspect the agent docs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "/agent-workflow-kit:inspect report-only" \
+            --plugin-dir /tmp/agent-workflow-kit \
+            --model "$AGENT_MODEL" \
+            --permission-mode dontAsk \
+            --permission-prompts none \
+            --allowedTools "Read,Grep,Glob,Skill,Edit(./docs/changes/.tasting/**),Bash(python3 *),Bash(git log *),Bash(git diff *)" \
+            --max-budget-usd "$AGENT_BUDGET_USD" \
+            --output-format json > inspect.json
+          cp docs/changes/.tasting/inspection.md inspect.md 2>/dev/null || jq -r '.result' inspect.json > inspect.md
+          printf '\n\n<sub>agent-workflow-kit /inspect · %s · $%s</sub>\n' "$AGENT_MODEL" "$(jq -r '.total_cost_usd' inspect.json)" >> inspect.md
+      - name: Open the report as an issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Agent docs inspection $(date +%F)" --body-file inspect.md
