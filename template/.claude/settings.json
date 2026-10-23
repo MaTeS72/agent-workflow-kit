@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "agent-workflow-kit": {
+      "source": {
+        "source": "github",
+        "repo": "MaTeS72/agent-workflow-kit"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "agent-workflow-kit@agent-workflow-kit": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  }
+}

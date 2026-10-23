@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "agent-workflow-kit": {
+      "source": { "source": "github", "repo": "MaTeS72/agent-workflow-kit" }
+    }
+  },
+  "enabledPlugins": {
+    "agent-workflow-kit@agent-workflow-kit": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(fvm flutter pub get)",
+      "Bash(fvm flutter analyze)",
+      "Bash(fvm flutter test *)",
+      "Bash(fvm dart format *)",
+      "Bash(fvm dart run build_runner build *)",
+      "Bash(fvm flutter gen-l10n)",
+      "Bash(./scripts/import_check/check.sh)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "mcp__firebase__firestore_get_document",
+      "mcp__firebase__firestore_list_documents",
+      "mcp__firebase__firestore_list_collections",
+      "mcp__firebase__firestore_query_collection",
+      "mcp__firebase__firestore_run_aggregation_query",
+      "mcp__firebase__crashlytics_get_issue",
+      "mcp__firebase__crashlytics_list_events",
+      "mcp__firebase__crashlytics_batch_get_events",
+      "mcp__firebase__crashlytics_get_report",
+      "mcp__firebase__remoteconfig_get_template"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(firebase deploy *)",
+      "Bash(npm run deploy)",
+      "Bash(./scripts/import_check/check.sh --update)",
+      "mcp__firebase__crashlytics_create_note",
+      "mcp__firebase__crashlytics_update_issue"
+    ],
+    "deny": [
+      "mcp__firebase__firestore_add_document",
+      "mcp__firebase__firestore_update_document",
+      "mcp__firebase__firestore_delete_document",
+      "mcp__firebase__firestore_create_database",
+      "mcp__firebase__firestore_update_database",
+      "mcp__firebase__firestore_delete_database",
+      "mcp__firebase__firestore_delete_index",
+      "mcp__firebase__firestore_delete_backup",
+      "mcp__firebase__firestore_delete_backup_schedule",
+      "mcp__firebase__remoteconfig_update_template"
+    ]
+  }
+}

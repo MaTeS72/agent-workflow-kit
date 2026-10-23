@@ -4,3 +4,7 @@ __pycache__/
 node_modules/
 docs/changes/.tasting/
 evals/results/
+
+# .claude/ folders are part of this kit (hook config, example and template
+# settings). Re-include them even when a global gitignore excludes .claude/.
+!**/.claude/

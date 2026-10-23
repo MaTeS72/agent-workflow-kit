@@ -1,0 +1,22 @@
+{
+  "$schema": "../schema/agent-workflow.schema.json",
+  "stack": "claude-code-plugin",
+  "pairedFiles": [
+    {
+      "glob": "hooks/*.py",
+      "reminder": "Hook changed: add or update a test in hooks/tests/test_hooks.py, then run `python3 -m unittest discover -s hooks/tests`."
+    },
+    {
+      "glob": "skills/*/SKILL.md",
+      "reminder": "Skill changed: keep the skills table in README.md and the workflow in docs/workflow.md in step."
+    },
+    {
+      "glob": "agents/*.md",
+      "reminder": "Agent changed: keep the reviewer table in skills/taste/SKILL.md and README.md in step."
+    },
+    {
+      "glob": "schema/agent-workflow.schema.json",
+      "reminder": "Schema changed: update stacks/README.md, the hook docstrings, and every stacks/*/agent-workflow.json."
+    }
+  ]
+}
