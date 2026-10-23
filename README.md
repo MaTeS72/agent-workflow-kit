@@ -10,7 +10,10 @@ grades any repository's `AGENTS.md` / `CLAUDE.md` from A to D.
 It grew out of building [Meally](examples/meally/README.md), a Flutter app
 shipping on iOS, Android and the web, with AI agents since May 2026. Most of
 its rules trace back to something that went wrong there; see
-[design decisions](docs/design-decisions.md).
+[design decisions](docs/design-decisions.md). The kit was extracted from
+Meally's private repository, where its full history lives (103 merged pull
+requests since May 2026), so this repository starts at the extraction rather
+than at the first experiment.
 
 ## Why a kitchen
 
@@ -27,18 +30,24 @@ agents have: many hands, one standard, and nothing leaves untasted.
 | **Clean as you go** | Each change lives in one folder, deleted when its last phase ships |
 | **The health inspection** | `/inspect` grades agent docs A to D, with evidence for every point |
 
+Inspection grades: **A** 90–100 · **B** 75–89 · **C** 60–74 · **D** under 60, out of the [100-point rubric](docs/agent-docs-rubric.md).
+
 ## The workflow
 
 ```mermaid
-flowchart LR
+flowchart TD
     P["/prep"] -->|brief.md| R["/recipe"]
-    R -->|plan.md| C["/cook"]
-    C -->|one phase| T{{"/taste: 5 reviewers"}}
+    R -->|plan.md| C["/cook: one phase"]
+    C --> T{{"/taste: 5 reviewers in parallel"}}
     T -->|confirmed blockers| C
-    C -->|"ask → commit · push · MR"| S(("served"))
-    U["/rush"] -->|"failing test → fix → taste"| S
-    S -.->|last phase| X["change folder deleted"]
+    T -->|"clean: ask, then commit · push · MR"| S(("served"))
+    U["/rush: urgent bug"] -->|"failing test → fix"| T
+    S -.->|after the last phase| X["change folder deleted"]
 ```
+
+In words: `/prep` writes a brief, `/recipe` writes the plan, and `/cook` builds
+one phase at a time, has five reviewers taste each one, and commits nothing
+until you say so. `/rush` is the fast path for urgent bugs.
 
 Each step reads the file the previous one wrote, so the context can be cleared
 between steps without losing anything. Details in [docs/workflow.md](docs/workflow.md).
