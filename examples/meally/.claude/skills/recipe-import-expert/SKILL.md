@@ -14,7 +14,7 @@ Read [docs/recipe-import.md](../../../docs/recipe-import.md) for the full deep d
 3. **Detect a page the app can't read** — a bot-check interstitial, HTTP 403/429/503 or an empty body → fall back to the Cloud Function.
 4. **JSON-LD parse** — preferred path. Look for `<script type="application/ld+json">` with `@type: Recipe` (or `@graph` / `mainEntity` containers).
 5. **Microdata fallback** — `itemscope` + `itemtype="schema.org/Recipe"` blocks.
-6. **AI fallback** — Gemini via `firebase_ai`, with rate-limit guard (`_AiRequestGuard`: 1 concurrent / 5 per minute / per-URL dedupe).
+6. **AI fallback** — Gemini via `firebase_ai`, with a client-side rate-limit guard (`_AiRequestGuard`: a concurrency cap, a per-minute window and per-URL dedupe).
 7. **Normalize** — `RecipeExtractor.fromJsonLd(...)` produces a `Recipe`. The image is re-hosted to Firebase Storage by `ImageService.uploadImageFromUrl(...)` in the app and again server-side by `onRecipeCreated` (`functions/src/index.ts`). Ingredients resolved through `IngredientResolverService`.
 
 ## File pointers
@@ -42,7 +42,7 @@ Read [docs/recipe-import.md](../../../docs/recipe-import.md) for the full deep d
 - **Broken image after a week** → the image was never re-hosted: check `ImageService.uploadImageFromUrl` in the app and the `onRecipeCreated` logs in Cloud Functions.
 - **TikTok returns nothing** → Cloud Function failed; inspect `functions/src/extract_recipe.ts` logs, especially the Gemini-with-Search-grounding path.
 - **Ingredients land as one string** → `recipeIngredient` was a String in the JSON-LD; widen the handling in `_extractIngredientStrings`.
-- **"AI import is temporarily rate-limited"** → `_AiRequestGuard` rolled the 5/min window.
+- **"AI import is temporarily rate-limited"** → `_AiRequestGuard` hit its per-minute window.
 
 ## When you change the pipeline
 

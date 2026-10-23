@@ -57,7 +57,7 @@
     },
     {
       "glob": "lib/utils/import_naming.dart",
-      "reminder": "Canonical empty-import naming. Mirrored in functions/src/extract_recipe.ts, ios/MeallyShareExtension/ExtractedRecipe.swift and android/app/src/main/kotlin/com/martincarska/mealplanner/ShareActivity.kt. Change every copy."
+      "reminder": "Canonical empty-import naming. Mirrored in functions/src/extract_recipe.ts, ios/MeallyShareExtension/ExtractedRecipe.swift and android/…/ShareActivity.kt. Change every copy."
     },
     {
       "glob": "lib/utils/language_resolver.dart",
@@ -80,7 +80,7 @@
       "reminder": "The share extension mirrors app and Cloud Function logic (entity decoding, JSON-LD normalization, import naming). Change every copy, then run ./scripts/import_check/check.sh, which also runs the Swift goldens."
     },
     {
-      "glob": "android/app/src/main/kotlin/com/martincarska/mealplanner/ShareActivity.kt",
+      "glob": "android/app/src/main/kotlin/**/ShareActivity.kt",
       "reminder": "Import naming here mirrors lib/utils/import_naming.dart, which is canonical. Change both."
     }
   ],
